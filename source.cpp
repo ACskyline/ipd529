@@ -15,7 +15,8 @@
 // Used for hardware & software SPI
 #define LIS3DH_CS 10
 
-#define G_EPSILON 0.08 //unit is m/s^2
+#define G_EPSILON 0.05//unit is m/s^2
+#define ROCKING_BIAS 1
 #define G 0.98 //unit is m/s^2
 
 struct vec3
@@ -133,11 +134,11 @@ void setup(void) {
 bool IsG(vec3 a)
 {
     float diff = a.length() - G;
-    Serial.println(diff);
+    //Serial.println(diff);
     float diffAbs = diff > 0 ? diff : -diff;
-    Serial.print(diffAbs);
-    Serial.print(" ? ");
-    Serial.println(G_EPSILON);
+    //Serial.print(diffAbs);
+    //Serial.print(" ? ");
+    //Serial.println(G_EPSILON);
     if(diffAbs < G_EPSILON)
         return true;
     else
@@ -159,8 +160,27 @@ float GetDeltaAngerScale(vec3 a)
     vec3 projPlane = current - projDown;
     float projPlaneLength = projPlane.length();//we need this
     
-    Serial.print("projDownScalar:"); Serial.println(projDownScalar, 6);
-    Serial.print("projPlaneLength:"); Serial.println(projPlaneLength, 6);
+    //Serial.print("projDownScalar:"); Serial.println(projDownScalar, 6);
+    //Serial.print("projPlaneLength:"); Serial.println(projPlaneLength, 6);
+    
+    float verticalAbs = projDownScalar - down.length();
+    if(verticalAbs < 0)
+        verticalAbs = -verticalAbs;
+    float horizontalAbs = projPlaneLength;
+    
+    Serial.print("vertical:"); Serial.println(verticalAbs, 6);
+    Serial.print("horizontal:"); Serial.println(horizontalAbs, 6);
+    
+    //decide shaking or rocking
+    float tangentSlope = 100;//init with infinity
+    if(horizontalAbs>0)
+        tangentSlope = verticalAbs / horizontalAbs;
+    
+    if((verticalAbs < 0.3 || (tangentSlope > 0 && tangentSlope < 1.f + ROCKING_BIAS)) //tan(45 degree) = 1
+    && horizontalAbs < 0.5) //to prevent horizontal shake
+        Serial.println("    Rocking");
+    else
+        Serial.println("    Shaking");
 }
 
 void UpdateTimerHandler()
