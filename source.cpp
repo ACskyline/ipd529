@@ -18,6 +18,10 @@
 #define G_EPSILON 0.05//unit is m/s^2
 #define ROCKING_BIAS 1
 #define G 0.98 //unit is m/s^2
+#define UPDATE_TIME 200
+#define PROCESS_TIME 1000
+#define RECOVER_TIME 2000
+#define SEND_TIME 3000
 
 struct vec3
 {   
@@ -96,12 +100,26 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 
 void UpdateTimerHandler();
 void ProcessTimerHandler();
+void RecoverTimerHandler();
+void SendTimerHandler();
 
-Timer updateTimer(200, UpdateTimerHandler);
-Timer processTimer(1000, ProcessTimerHandler);
+Timer updateTimer(UPDATE_TIME, UpdateTimerHandler);
+Timer processTimer(PROCESS_TIME, ProcessTimerHandler);
+Timer recoverTimer(RECOVER_TIME, RecoverTimerHandler);
+Timer sendTimer(SEND_TIME, SendTimerHandler);
 
 vec3 down;
-vec3 current;
+vec3 curAccel;
+bool readyToSend;
+float anger;
+float angerDeltaSend;
+const int angerRecoverStep = 20;
+const float angerInit = 50.f;
+const float angerMax = 100.f;
+const float angerMin = 0.f;
+const float angerDeltaSendFactor = 0.8f;
+const float angerDeltaHorizontalFactor = 30.f;
+const float angerDeltaVerticalFactor = 9.f;
 
 #if defined(ARDUINO_ARCH_SAMD)
 // for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
@@ -109,6 +127,14 @@ vec3 current;
 #endif
 
 void setup(void) {
+    
+    // initialization
+    down = vec3(0,0,-1);
+    curAccel = vec3(0,0,-1);
+    readyToSend = false;
+    anger = angerInit;
+    angerDeltaSend = 0.f;
+    
 #ifndef ESP8266
   while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
 #endif
@@ -122,13 +148,16 @@ void setup(void) {
   }
   Serial.println("LIS3DH found!");
 
-  lis.setRange(LIS3DH_RANGE_4_G);   // 2, 4, 8 or 16 G!
+  lis.setRange(LIS3DH_RANGE_2_G);   // 2, 4, 8 or 16 G!
 
   Serial.print("Range = "); Serial.print(2 << lis.getRange());
   Serial.println("G");
   
+  //start timers
   updateTimer.start();
   processTimer.start();
+  recoverTimer.start();
+  sendTimer.start();
 }
 
 bool IsG(vec3 a)
@@ -146,18 +175,20 @@ bool IsG(vec3 a)
 }
 
 void loop() {
-  
-  
-
-  //delay(200);
+    if(readyToSend)
+    {
+        Particle.publish("SendAnger",String(angerDeltaSend));
+        angerDeltaSend = 0;
+        readyToSend = false;
+    }
 }
 
-float GetDeltaAngerScale(vec3 a)
+float GetDeltaAnger(vec3 a)
 {
     vec3 norDown = normalize(down);
-    float projDownScalar = dot(norDown, current);//we need this
+    float projDownScalar = dot(norDown, curAccel);//we need this
     vec3 projDown = projDownScalar * norDown;
-    vec3 projPlane = current - projDown;
+    vec3 projPlane = curAccel - projDown;
     float projPlaneLength = projPlane.length();//we need this
     
     //Serial.print("projDownScalar:"); Serial.println(projDownScalar, 6);
@@ -168,8 +199,8 @@ float GetDeltaAngerScale(vec3 a)
         verticalAbs = -verticalAbs;
     float horizontalAbs = projPlaneLength;
     
-    Serial.print("vertical:"); Serial.println(verticalAbs, 6);
-    Serial.print("horizontal:"); Serial.println(horizontalAbs, 6);
+    //Serial.print("vertical:"); Serial.println(verticalAbs, 6);
+    //Serial.print("horizontal:"); Serial.println(horizontalAbs, 6);
     
     //decide shaking or rocking
     float tangentSlope = 100;//init with infinity
@@ -178,9 +209,21 @@ float GetDeltaAngerScale(vec3 a)
     
     if((verticalAbs < 0.3 || (tangentSlope > 0 && tangentSlope < 1.f + ROCKING_BIAS)) //tan(45 degree) = 1
     && horizontalAbs < 0.5) //to prevent horizontal shake
-        Serial.println("    Rocking");
+    {
+        //rocking
+        float deltaAnger = -angerDeltaHorizontalFactor * horizontalAbs;
+        Serial.print("    Rocking = ");
+        Serial.println(deltaAnger, 6);
+        return deltaAnger;
+    }
     else
-        Serial.println("    Shaking");
+    {
+        //shaking
+        float deltaAnger = angerDeltaVerticalFactor * verticalAbs;
+        Serial.print("    Shaking = ");
+        Serial.println(deltaAnger, 6);
+        return deltaAnger;
+    }
 }
 
 void UpdateTimerHandler()
@@ -189,42 +232,52 @@ void UpdateTimerHandler()
   
   vec3 raw(lis.x, lis.y, lis.z);
   
-  // Then print out the raw data
-  /*Serial.print("X: "); Serial.print(raw.x);//lis.x);
-  Serial.print(", Y: "); Serial.print(raw.y);//lis.y);
-  Serial.print(", Z: "); Serial.print(raw.z);//lis.z);
-  Serial.println(" raw data");*/
-  /* Or....get a new sensor event, normalized */
   sensors_event_t event;
   lis.getEvent(&event);
   
   vec3 cooked(event.acceleration.x, event.acceleration.y, event.acceleration.z);
-
-  /* Display the results (acceleration is measured in m/s^2) */
-  /*Serial.print("X: "); Serial.print(cooked.x);//event.acceleration.x);
-  Serial.print(", Y: "); Serial.print(cooked.y);//event.acceleration.y);
-  Serial.print(", Z: "); Serial.print(cooked.z);//event.acceleration.z);
-  Serial.println(" m/s^2");*/
-
-  //Serial.println();
   
-  current = cooked;
+  curAccel = cooked;
 }
 
 void ProcessTimerHandler()
 {
-    Serial.print("X: "); Serial.print(current.x);
-    Serial.print(", Y: "); Serial.print(current.y);
-    Serial.print(", Z: "); Serial.print(current.z);
-    Serial.println(" m/s^2");
+    //Serial.print("X: "); Serial.print(curAccel.x);
+    //Serial.print(", Y: "); Serial.print(curAccel.y);
+    //Serial.print(", Z: "); Serial.print(curAccel.z);
+    //Serial.println(" m/s^2");
     
-    if(IsG(current))
+    if(IsG(curAccel))
     {
-        down = current;
-        Serial.println("isG");
+        down = curAccel;
+        //Serial.println("isG");
     }
     else
     {
-        GetDeltaAngerScale(current);
+        float angerDelta = GetDeltaAnger(curAccel);
+        angerDeltaSend += angerDeltaSendFactor * angerDelta;
+        anger += angerDelta;
+        if(anger<angerMin) anger = angerMin;
+        if(anger>angerMax) anger = angerMax;
     }
+    
+    Serial.print("Anger = ");
+    Serial.println(anger, 6);
+}
+
+void RecoverTimerHandler()
+{
+    float angerRecover = (angerInit - anger) / angerRecoverStep;
+    //Serial.print(" *Anger to be recovered = ");
+    //Serial.println(angerRecover, 6);
+    anger += angerRecover;
+    if(anger<angerMin) anger = angerMin;
+    if(anger>angerMax) anger = angerMax;
+    //Serial.print(" *Anger after recovery = ");
+    //Serial.println(anger, 6);
+}
+
+void SendTimerHandler()
+{
+    readyToSend = true;
 }
