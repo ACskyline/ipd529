@@ -23,6 +23,8 @@
 #define RECOVER_TIME 2000
 #define SEND_TIME 3000
 
+#define EGGA //egg a
+
 struct vec3
 {   
     float x;
@@ -102,6 +104,7 @@ void UpdateTimerHandler();
 void ProcessTimerHandler();
 void RecoverTimerHandler();
 void SendTimerHandler();
+//void AngerEventHandler(const char *event, const char *data);
 
 Timer updateTimer(UPDATE_TIME, UpdateTimerHandler);
 Timer processTimer(PROCESS_TIME, ProcessTimerHandler);
@@ -111,15 +114,26 @@ Timer sendTimer(SEND_TIME, SendTimerHandler);
 vec3 down;
 vec3 curAccel;
 bool readyToSend;
+bool isG;
 float anger;
 float angerDeltaSend;
-const int angerRecoverStep = 20;
+const int angerRecoverStep = 15;
 const float angerInit = 50.f;
 const float angerMax = 100.f;
 const float angerMin = 0.f;
 const float angerDeltaSendFactor = 0.8f;
 const float angerDeltaHorizontalFactor = 30.f;
 const float angerDeltaVerticalFactor = 9.f;
+
+#ifdef EGGA
+const char* angerSendEvent = "Egg_A_Send";
+const char* angerReceiveEvent = "Egg_B_Send";
+#endif
+
+#ifdef EGGB
+const char* angerSendEvent = "Egg_B_send";
+const char* angerReceiveEvent = "Egg_A_send";
+#endif
 
 #if defined(ARDUINO_ARCH_SAMD)
 // for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
@@ -158,6 +172,10 @@ void setup(void) {
   processTimer.start();
   recoverTimer.start();
   sendTimer.start();
+  
+#if defined EGGA || defined EGGB
+  Particle.subscribe(angerReceiveEvent, AngerEventHandler);
+#endif
 }
 
 bool IsG(vec3 a)
@@ -177,7 +195,9 @@ bool IsG(vec3 a)
 void loop() {
     if(readyToSend)
     {
-        Particle.publish("SendAnger",String(angerDeltaSend));
+        #if defined EGGA || defined EGGB
+        Particle.publish(angerSendEvent,String(angerDeltaSend));
+        #endif
         angerDeltaSend = 0;
         readyToSend = false;
     }
@@ -228,16 +248,25 @@ float GetDeltaAnger(vec3 a)
 
 void UpdateTimerHandler()
 {
-  lis.read();      // get X Y and Z data at once
+    lis.read();      // get X Y and Z data at once
+    
+    vec3 raw(lis.x, lis.y, lis.z);
+    
+    sensors_event_t event;
+    lis.getEvent(&event);
   
-  vec3 raw(lis.x, lis.y, lis.z);
+    vec3 cooked(event.acceleration.x, event.acceleration.y, event.acceleration.z);
   
-  sensors_event_t event;
-  lis.getEvent(&event);
-  
-  vec3 cooked(event.acceleration.x, event.acceleration.y, event.acceleration.z);
-  
-  curAccel = cooked;
+    curAccel = cooked;
+    
+    if(IsG(curAccel))
+    {
+        isG = true;
+        down = curAccel;
+        //Serial.println("isG");
+    }
+    else
+        isG = false;
 }
 
 void ProcessTimerHandler()
@@ -247,10 +276,14 @@ void ProcessTimerHandler()
     //Serial.print(", Z: "); Serial.print(curAccel.z);
     //Serial.println(" m/s^2");
     
-    if(IsG(curAccel))
-    {
-        down = curAccel;
+    //if(IsG(curAccel))
+    //{
+        //down = curAccel;
         //Serial.println("isG");
+    //}
+    if(isG)
+    {
+        //do nothing
     }
     else
     {
@@ -280,4 +313,11 @@ void RecoverTimerHandler()
 void SendTimerHandler()
 {
     readyToSend = true;
+}
+
+void AngerEventHandler(const char *event, const char *data)
+{
+    float angerDeltaReceive = atof(data);
+    Serial.print("AngerDeltaReceive = ");
+    Serial.println(angerDeltaReceive, 6);
 }
