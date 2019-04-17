@@ -196,7 +196,7 @@ void loop() {
     if(readyToSend)
     {
         #if defined EGGA || defined EGGB
-        Particle.publish(angerSendEvent,String(angerDeltaSend));
+        Particle.publish(angerSendEvent, String(angerDeltaSend), PUBLIC);
         #endif
         angerDeltaSend = 0;
         readyToSend = false;
