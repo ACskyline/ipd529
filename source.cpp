@@ -131,8 +131,8 @@ const char* angerReceiveEvent = "Egg_B_Send";
 #endif
 
 #ifdef EGGB
-const char* angerSendEvent = "Egg_B_send";
-const char* angerReceiveEvent = "Egg_A_send";
+const char* angerSendEvent = "Egg_B_Send";
+const char* angerReceiveEvent = "Egg_A_Send";
 #endif
 
 #if defined(ARDUINO_ARCH_SAMD)
