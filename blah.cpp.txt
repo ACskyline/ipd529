@@ -1,0 +1,95 @@
+int camPin = D5;
+int vibePin = D2;
+
+int angerLevelPrev;
+int angerLevel;
+int angerNum;
+
+void setup() {
+    pinMode(camPin, OUTPUT);
+    pinMode(vibePin, OUTPUT);
+}
+
+void loop() {
+    
+    // accelerometer code
+    // accel output = int 0-100
+    
+    angerLevelPrev = angerLevel;
+    angerLevel = angerNum;
+    AngerRanges();
+    
+}
+
+void AngerRanges(int x) {
+    if (15 < x =< 25) { ChilledOut(); } //chilled out bro
+    else if (25 < x =< 35) { PrettyCalm(); } //calm + blue/darkpurple
+    else if (35 < x =< 45) { SortaChill(); } //calm/neut +green, cyan, blue
+    else if (45 < x =< 55) { NeutralBreathe(); } //cyan,lite purple,peach
+    else if (55 < x =< 65) { MildAnnoyed(); } //mildly annoyed + magenta
+    else if (65 < x =< 75) { Agitated(); }//agitated + orange/magenta
+    else if (75 < x =< 95) { Rage_Mode() } //wtf dude +red/yellow
+}
+
+void ChilledOut() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
+
+void PrettyCalm() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
+
+void SortaChill() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
+
+void NeutralBreathe() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
+
+void MildAnnoyed() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
+
+void Agitated() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
+
+void Rage_Mode() {
+        analogWrite(vibePin, 150, 100);
+        analogWrite(camPin, 200, 100);
+        delay(200);
+        analogWrite(camPin, 0, 100);
+        analogWrite(vibePin, 0, 100);
+        delay(200);
+}
