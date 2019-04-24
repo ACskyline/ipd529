@@ -1,1 +1,166 @@
-// This #include statement was automatically added by the Particle IDE.#include <neopixel.h>SYSTEM_MODE(AUTOMATIC);// IMPORTANT: Set pixel COUNT, PIN and TYPE#define PIXEL_PIN D4#define PIXEL_COUNT 1#define PIXEL_TYPE WS2812B//colors// #define LIGHT_PURPLE 204, 153, 255// #define DARK_PURPLE 127, 0, 255// #define MAGENTA 255, 0, 127// #define DARK_MAGENTA 153, 0, 76// #define PINK 255, 0, 255// #define SALMON 255, 153, 153// #define CYAN 102, 255, 255// #define MAGENTA 255, 0, 127// #define DARK_GREEN 29, 144, 113// #define MED_GREEN 0, 164, 120// #define DARK_BLUE 31, 0, 235// #define MED_BLUE 98, 81, 209// #define LITE_BLUE 180, 187, 250// #define ORANGE 255, 145, 0Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);void setup() {  Serial.begin(9600);  strip.begin();  strip.setBrightness(20);  strip.show();}void loop() {    NeutralBreathe();    strip.show();}void NeutralBreathe(){  for(int j = 0; j < 3; j++ ) {     // Fade IN    for(int k = 0; k < 256; k++) {       switch(j) {         case 0: setAll(102,255,255, k); break; //cyan        case 1: setAll(204,153,255, k); break; //purple        case 2: setAll(255,153,153, k); break; //peach      }      strip.show();    }    // Fade OUT    for(int k = 255; k >= 0; k--) {       switch(j) {         case 0: setAll(102,255,255, k); break; //cyan        case 1: setAll(204,153,255, k); break; //purple        case 2: setAll(255,153,153, k); break; //peach      }      strip.show();      //timer?    }  }}void setAll(uint8_t r, uint8_t g, uint8_t b, uint16_t brightness) {    for (int f = 0; f < PIXEL_COUNT; f++) {        strip.setPixelColor(f, (brightness*r/255) , (brightness*g/255), (brightness*b/255)); //maintain color while fading brightness        delay(5);    }}// //anger between 1-100// void AngerEventHandler(const char *event, const char *data)// {//     float angerDeltaReceive = atof(data);//     Serial.print("AngerDeltaReceive = ");//     Serial.println(angerDeltaReceive, 6);//     //add anger value to anger delta//     anger = anger + angerDeltaReceive;//     AngerRanges(anger);// }// void AngerRanges(int x) {//     if (15 < x && x =< 25) {} //chilled out bro//     else if (25 < x && x =< 35) {} //calm + blue/darkpurple//     else if (35 < x && x =< 45) {} //calm/neut +green, cyan, blue//     else if (45 < x && x =< 55) { NeutralBreathe(); } //cyan,lite purple,peach//     else if (55 < x && x =< 65) { MildAnnoyed(); } //mildly annoyed + magenta//     else if (65 < x && x =< 75) { Agitated(); }//agitated + orange/magenta//     else if (75 < x && x =< 85) { Rage_Mode() } //wtf dude +red/yellow// }// void MildAnnoyed(){//   for(int j = 0; j < 3; j++ ) { //     // Fade IN//     for(int k = 0; k < 256; k++) { //       switch(j) { //         case 0: setAll(k,0,127); break; //magenta//         case 1: setAll(204,k,255); break; //purple//         case 2: setAll(255,153,k); break; //peach//       }//       showStrip();//     }//     // Fade OUT//     for(int k = 255; k >= 0; k--) { //       switch(j) { //         case 0: setAll(k,0,127); break;//         case 1: setAll(204,k,255); break;//         case 2: setAll(255,153,k); break;//       }//       showStrip();//       //timer?//     }//   }// }// void Agitated(){//   for(int j = 0; j < 3; j++ ) { //     // Fade IN//     for(int k = 0; k < 256; k++) { //       switch(j) { //         case 0: setAll(k,0,127); break; //magenta//         case 1: setAll(k,145,0); break; //orange//         case 2: setAll(255,153,k); break; //peach//       }//       showStrip();//     }//     // Fade OUT//     for(int k = 255; k >= 0; k--) { //       switch(j) { //         case 0: setAll(k,0,127); break;//         case 1: setAll(k,145,0); break; //orange//         case 2: setAll(255,153,k); break;//       }//       showStrip();//       //timer?//     }//   }// }// void Rage_Mode(){//   for(int j = 0; j < 3; j++ ) { //     // Fade IN//     for(int k = 0; k < 256; k++) { //       switch(j) { //         case 0: setAll(k,0,0); break; //red//         case 1: setAll(k,145,0); break; //orange//         case 2: setAll(k,100,0); break; //yellow//       }//       showStrip();//     }//     // Fade OUT//     for(int k = 255; k >= 0; k--) { //       switch(j) { //         case 0: setAll(k,0,0); break; //red//         case 1: setAll(k,145,0); break; //orange//         case 2: setAll(k,100,0); break; //yellow//       }//       showStrip();//       //timer?//     }//   }// }
+// This #include statement was automatically added by the Particle IDE.
+#include <neopixel.h>
+
+SYSTEM_MODE(AUTOMATIC);
+
+// IMPORTANT: Set pixel COUNT, PIN and TYPE
+#define PIXEL_PIN D4
+#define PIXEL_COUNT 1
+#define PIXEL_TYPE WS2812B
+//colors
+// #define LIGHT_PURPLE 204, 153, 255
+// #define DARK_PURPLE 127, 0, 255
+// #define MAGENTA 255, 0, 127
+// #define DARK_MAGENTA 153, 0, 76
+// #define PINK 255, 0, 255
+// #define SALMON 255, 153, 153
+// #define CYAN 102, 255, 255
+// #define MAGENTA 255, 0, 127
+// #define DARK_GREEN 29, 144, 113
+// #define MED_GREEN 0, 164, 120
+// #define DARK_BLUE 31, 0, 235
+// #define MED_BLUE 98, 81, 209
+// #define LITE_BLUE 180, 187, 250
+// #define ORANGE 255, 145, 0
+
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+
+
+void setup() {
+  Serial.begin(9600);
+  strip.begin();
+  strip.setBrightness(85);
+  strip.show();
+
+}
+void loop() {
+    NeutralBreathe();
+    strip.show();
+}
+
+void NeutralBreathe(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(102,255,255, k); break; //cyan
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(102,255,255, k); break; //cyan
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+  }
+}
+
+void setAll(uint8_t r, uint8_t g, uint8_t b, uint16_t brightness) {
+    for (int f = 0; f < PIXEL_COUNT; f++) {
+        strip.setPixelColor(f, (brightness*r/255) , (brightness*g/255), (brightness*b/255)); //maintain color while fading brightness
+        delay(5);
+    }
+}
+
+
+void AngerEventHandler(const char *event, const char *data)
+{
+    float angerDeltaReceive = atof(data);
+    Serial.print("AngerDeltaReceive = ");
+    Serial.println(angerDeltaReceive, 6);
+    //add anger value to anger delta
+    anger = anger + angerDeltaReceive;
+    AngerRanges(anger);
+}
+
+void AngerRanges(int x) {
+    if (15 < x && x =< 25) {} //chilled out bro
+    else if (25 < x && x =< 35) {} //calm + blue/darkpurple
+    else if (35 < x && x =< 45) {} //calm/neut +green, cyan, blue
+    else if (45 < x && x =< 55) { NeutralBreathe(); } //cyan,lite purple,peach
+    else if (55 < x && x =< 65) { MildAnnoyed(); } //mildly annoyed + magenta
+    else if (65 < x && x =< 75) { Agitated(); }//agitated + orange/magenta
+    else if (75 < x && x =< 85) { Rage_Mode() } //wtf dude +red/yellow
+}
+
+void MildAnnoyed(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      showStrip();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      showStrip();
+    }
+  }
+}
+
+void Agitated(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      showStrip();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      showStrip();
+    }
+  }
+}
+
+void Rage_Mode(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(255,0,0, k); break; //red
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(254,203,0, k); break; //yellow
+      }
+      showStrip();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(255,0,0, k); break; //red
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(254,203,0, k); break; //yellow
+      }
+      showStrip();
+    }
+  }
+}
+
+
+
+
+
+
+
