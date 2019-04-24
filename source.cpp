@@ -1,10 +1,13 @@
-// Basic demo for accelerometer readings from Adafruit LIS3DH
+#include "Particle.h"
 
 #ifndef PARTICLE
 #include <Wire.h>
 #include <SPI.h>
 #endif
 #include <Adafruit_LIS3DH.h>
+
+// led include
+#include <neopixel.h>
 
 #include "math.h"
 
@@ -24,6 +27,11 @@
 #define SEND_TIME 3000
 
 #define EGGA //egg a
+
+//LED defines
+#define PIXEL_PIN D4
+#define PIXEL_COUNT 1
+#define PIXEL_TYPE WS2812B
 
 struct vec3
 {   
@@ -93,12 +101,14 @@ vec3 normalize(vec3 a)
     return a / l;
 }
 
-// software SPI
-//Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS, LIS3DH_MOSI, LIS3DH_MISO, LIS3DH_CLK);
-// hardware SPI
-//Adafruit_LIS3DH lis = Adafruit_LIS3DH(LIS3DH_CS);
-// I2C
+//multithread
+SYSTEM_THREAD(ENABLED);
+
+//accelerometer
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
+
+//led strip
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
 
 void UpdateTimerHandler();
 void ProcessTimerHandler();
@@ -111,11 +121,17 @@ Timer processTimer(PROCESS_TIME, ProcessTimerHandler);
 Timer recoverTimer(RECOVER_TIME, RecoverTimerHandler);
 Timer sendTimer(SEND_TIME, SendTimerHandler);
 
+Thread threadMotor("threadMotor", threadMotorProc);
+Thread threadLed("threadLed", threadLedProc);
+
+int camPin = D5;//temporary
+int vibePin = D6;//temporary
+
+volatile float anger;//volatile for shared variable
 vec3 down;
 vec3 curAccel;
 bool readyToSend;
 bool isG;
-float anger;
 float angerDeltaSend;
 const int angerRecoverStep = 15;
 const float angerInit = 50.f;
@@ -141,6 +157,10 @@ const char* angerReceiveEvent = "Egg_A_Send";
 #endif
 
 void setup(void) {
+    // strip initialization
+    strip.begin();
+    strip.setBrightness(20);
+    strip.show();
     
     // initialization
     down = vec3(0,0,-1);
@@ -320,4 +340,135 @@ void AngerEventHandler(const char *event, const char *data)
     float angerDeltaReceive = atof(data);
     Serial.print("AngerDeltaReceive = ");
     Serial.println(angerDeltaReceive, 6);
+}
+
+//*MULTI-THREADING STARTS HERE*//
+
+//motor thread
+void threadMotorProc()
+{
+    while(true)
+    {
+        delay(10000);
+        Serial.printlnf("thread motor out put %d *-*", anger);
+    }
+}
+
+//led thread
+void threadLedProc()
+{
+    while(true)
+    {
+        AngerRanges(anger);
+    }
+}
+
+void AngerRanges(int x) {
+    if (x > 15 && x <= 25) {} //chilled out bro
+    else if (x > 25 && x <= 35) {} //calm + blue/darkpurple
+    else if (x > 35 && x <= 45) {} //calm/neut +green, cyan, blue
+    else if (x > 45 && x <= 55) { NeutralBreathe(); } //cyan,lite purple,peach
+    else if (x > 55 && x <= 65) { MildAnnoyed(); } //mildly annoyed + magenta
+    else if (x > 65 && x <= 75) { Agitated(); }//agitated + orange/magenta
+    else if (x > 75 && x <= 85) { Rage_Mode(); } //wtf dude +red/yellow
+}
+
+void NeutralBreathe(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(102,255,255, k); break; //cyan
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(102,255,255, k); break; //cyan
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+      //timer?
+    }
+  }
+}
+
+void MildAnnoyed(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(204,153,255, k); break; //purple
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+  }
+}
+
+void Agitated(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(255,0,127, k); break; //magenta
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(255,153,153, k); break; //peach
+      }
+      strip.show();
+    }
+  }
+}
+
+void Rage_Mode(){
+  for(int j = 0; j < 3; j++ ) { 
+    // Fade IN
+    for(int k = 0; k < 256; k++) { 
+      switch(j) { 
+        case 0: setAll(255,0,0, k); break; //red
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(254,203,0, k); break; //yellow
+      }
+      strip.show();
+    }
+    // Fade OUT
+    for(int k = 255; k >= 0; k--) { 
+      switch(j) { 
+        case 0: setAll(255,0,0, k); break; //red
+        case 1: setAll(255,145,0, k); break; //orange
+        case 2: setAll(254,203,0, k); break; //yellow
+      }
+      strip.show();
+    }
+  }
+}
+
+void setAll(uint8_t r, uint8_t g, uint8_t b, uint16_t brightness) {
+    for (int f = 0; f < PIXEL_COUNT; f++) {
+        strip.setPixelColor(f, (brightness*r/255) , (brightness*g/255), (brightness*b/255)); //maintain color while fading brightness
+        delay(5);
+    }
 }
