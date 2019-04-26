@@ -29,6 +29,8 @@
 #define EGGA //egg a
 
 //LED defines
+#define CAM_PIN D3
+#define VIBE_PIN D4 //changed from D2
 #define PIXEL_PIN D2
 #define PIXEL_COUNT 1
 #define PIXEL_TYPE WS2812B
@@ -275,6 +277,7 @@ Thread threadLed("threadLed", threadLedProc);
 
 volatile float anger;               //volatile for shared variable
 volatile unsigned int curTimeColor; //use integer so that it's easier to spot a bug
+volatile unsigned int curTimeMotor; //use integer so that it's easier to spot a bug
 volatile int curState;
 vec4 curColor;
 vec3 down;
@@ -314,6 +317,12 @@ void setup(void)
 #endif
 
     Serial.begin(9600);
+    
+    // motor initiali
+    pinMode(CAM_PIN, OUTPUT);
+    pinMode(VIBE_PIN, OUTPUT);
+    
+    delay(100);
 
     // strip initialization
     strip.begin();
@@ -337,7 +346,7 @@ void setup(void)
     //It is not a point in time, because this way I don't need to do the sorting
     //and you don't need to specify the order of the frames. The order is the same as in which they are added.
 
-    //************record clips************//
+    //************record color clips begin************//
     //Depressed
     colorClips[Depressed].AddFrame(vec4(0, 1, 1, 1), 100.f);
     colorClips[Depressed].AddFrame(vec4(0, 1, 1, 1), 100.f);
@@ -381,7 +390,7 @@ void setup(void)
     colorClips[MadMax].AddFrame(vec4(1, 0, 0, 1), 0.f);
     colorClips[MadMax].AddFrame(vec4(1, 1, 0, 1), 100.f);
     colorClips[MadMax].AddFrame(vec4(1, 1, 0, 1), 0.f);
-    //************record clips************//
+    //************record color clips end************//
 
     Serial.println("LIS3DH test!");
 
@@ -604,8 +613,8 @@ void threadMotorProc()
 {
     while (true)
     {
-        delay(10000);
-        Serial.printlnf("thread motor out put %f *-*", anger);
+        AngerRanges(curState);
+        delay(100);
     }
 }
 
@@ -632,4 +641,348 @@ void setLed(float r, float g, float b, float a)
     }
     strip.show();
     delay(5); //this does not change pattern but just function as a way to throttle writing to led
+}
+
+void AngerRanges(int x)
+{
+    Serial.printlnf("anger ranges %d", x);
+    if (x == Depressed)
+    {
+        DepressedMotor();
+    } // chilled out bro
+    else if (x == Lonely)
+    {
+        LonelyMotor();
+    } // calm + blue/darkpurple
+    else if (x == Chill)
+    {
+        ChillMotor();
+    } // calm/neut + green, cyan, blue
+    else if (x == Neutral)
+    {
+        NeutralMotor();
+    } // cyan, lite purple, peach
+    else if (x == Annoyed)
+    {
+        AnnoyedMotor();
+    } // mildly annoyed + magenta
+    else if (x == Agitated)
+    {
+        AgitatedMotor();
+    } // agitated + orange/magenta
+    else if (x == MadMax)
+    {
+        MadMaxMotor();
+    } // wtf dude + red/yellow
+}
+
+void DepressedMotor()
+{ // breathes slowly, turning off for a bit each time
+    for (int i = 10; i < 30; i++)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        analogWrite(CAM_PIN, 0, 100);
+        delay(150);
+    }
+
+    for (int i = 30; i > 10; i--)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        analogWrite(CAM_PIN, 0, 100);
+        delay(150);
+    }
+}
+
+void LonelyMotor()
+{ // slightly higher duty, quicker breathing cycle, light jolts from cam at regular intervals
+    for (int i = 20; i < 40; i++)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        if (i == 29)
+        {
+            analogWrite(CAM_PIN, 75, 100);
+            delay(150);
+        }
+        else if (i == 31)
+        {
+            analogWrite(CAM_PIN, 0, 100);
+            delay(150);
+        }
+        else
+        {
+            delay(150);
+        }
+    }
+
+    for (int i = 40; i > 20; i--)
+    {
+
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+
+        if (i == 31)
+        {
+            analogWrite(CAM_PIN, 75, 100);
+            delay(150);
+        }
+        else if (i == 29)
+        {
+            analogWrite(CAM_PIN, 0, 100);
+            delay(150);
+        }
+        else
+        {
+            delay(150);
+        }
+    }
+}
+
+void ChillMotor()
+{ // ever so slightly higher duty cycle, jolts from cam twice as often at regular intervals
+
+    for (int i = 25; i < 50; i++)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        if (i == 45 | i == 35)
+        {
+            analogWrite(CAM_PIN, 80, 100);
+            delay(150);
+        }
+        else if (i == 47 | i == 37)
+        {
+            analogWrite(CAM_PIN, 0, 100);
+            delay(150);
+        }
+        else
+        {
+            delay(150);
+        }
+    }
+
+    for (int i = 50; i > 25; i--)
+    {
+
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+
+        if (i == 35 | i == 45)
+        {
+            analogWrite(CAM_PIN, 80, 100);
+            delay(150);
+        }
+        else if (i == 33 | i == 43)
+        {
+            analogWrite(CAM_PIN, 0, 100);
+            delay(150);
+        }
+        else
+        {
+            delay(150);
+        }
+    }
+}
+
+void NeutralMotor()
+{ // similar to max chill state, but vibe is always on - stronger breathing
+
+    //Serial.println("Reach Neutral Breathe Function");
+    for (int i = 25; i < 70; i++)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        analogWrite(CAM_PIN, 0, 100);
+        delay(50);
+    }
+
+    for (int i = 70; i > 25; i--)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        analogWrite(CAM_PIN, 0, 100);
+        delay(50);
+    }
+}
+
+void AnnoyedMotor()
+{ // slight vibe pulsing
+
+    for (int i = 60; i < 80; i++)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        analogWrite(CAM_PIN, 0, 100);
+        delay(30);
+    }
+
+    for (int i = 80; i > 60; i--)
+    {
+        int duty = (255 / 100) * i;
+        analogWrite(VIBE_PIN, duty, 100);
+        analogWrite(CAM_PIN, 0, 100);
+        delay(30);
+    }
+}
+
+void AgitatedMotor()
+{ // more aggressive pulsing, shocks from cam turning on/off
+
+    //ramp up
+    for (int i = 70; i < 90; i++)
+    {
+
+        int duty = (255 / 100) * i;
+
+        if (i > 84 && i < 87)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 74 && i < 77)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 86)
+        {
+            analogWrite(VIBE_PIN, 0, 100);
+            analogWrite(CAM_PIN, 0, 100);
+            delay(50);
+        }
+        else
+        {
+            analogWrite(VIBE_PIN, duty, 100);
+            analogWrite(CAM_PIN, 0, 100);
+            delay(50);
+        }
+    }
+
+    //ramp down
+    for (int i = 90; i > 70; i--)
+    {
+
+        int duty = (255 / 100) * i;
+
+        if (i > 84 && i < 87)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 74 && i < 77)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i < 74)
+        {
+            analogWrite(VIBE_PIN, 0, 100);
+            analogWrite(CAM_PIN, 0, 100);
+            delay(50);
+        }
+        else
+        {
+            analogWrite(VIBE_PIN, duty, 100);
+            analogWrite(CAM_PIN, 0, 100);
+            delay(50);
+        }
+    }
+}
+
+void MadMaxMotor()
+{ // more aggressive pulsing, shocks from cam turning on/off
+
+    //ramp up
+    for (int i = 70; i < 100; i++)
+    {
+
+        int duty = (255 / 100) * i;
+
+        if (i > 74 && i < 77)
+        {
+            analogWrite(CAM_PIN, 255, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 79 && i < 82)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 84 && i < 87)
+        {
+            analogWrite(CAM_PIN, 255, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 89 && i < 92)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 94 && i < 97)
+        {
+            analogWrite(CAM_PIN, 255, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else
+        {
+            analogWrite(VIBE_PIN, duty, 100);
+            analogWrite(CAM_PIN, 0, 100);
+            delay(50);
+        }
+    }
+
+    //ramp down
+    for (int i = 100; i > 70; i--)
+    {
+
+        int duty = (255 / 100) * i;
+
+        if (i > 74 && i < 77)
+        {
+            analogWrite(CAM_PIN, 255, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 79 && i < 82)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 84 && i < 87)
+        {
+            analogWrite(CAM_PIN, 255, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 89 && i < 92)
+        {
+            analogWrite(CAM_PIN, 200, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else if (i > 94 && i < 97)
+        {
+            analogWrite(CAM_PIN, 255, 100);
+            analogWrite(VIBE_PIN, duty, 100);
+            delay(50);
+        }
+        else
+        {
+            analogWrite(VIBE_PIN, duty, 100);
+            analogWrite(CAM_PIN, 0, 100);
+            delay(50);
+        }
+    }
 }
